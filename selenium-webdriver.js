@@ -331,7 +331,7 @@ module.exports = function(RED) {
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
-			});
+			}); 
 		} catch (ex) {
 			msg.error = {
 				name : node.name,
@@ -748,7 +748,7 @@ module.exports = function(RED) {
 		this.target = n.target;
 		this.waitfor = n.waitfor;
 		this.clearval = n.clearval;
-		var node = this;
+		var node = this; 
 		this.on("input", function(msg) {
 			waitUntilElementLocated(node, msg).then(function (element) {
 				sendKeysNode(node, msg);
