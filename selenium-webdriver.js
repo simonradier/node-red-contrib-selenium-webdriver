@@ -99,16 +99,18 @@ module.exports = function(RED) {
 								name : node.name,
 								selector : node.selector,
 								target : node.target,
-								value : "catch timeout after " + node.timeout + " seconds"
+								value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
 							};
 							node.status({
 								fill : "red",
 								shape : "ring",
 								text : "error"
 							});
+							node.warn(msg.error);
+							node.send([null, msg]);
 						}).then(function() {
 							if (msg.error) {
-								node.send([msg, null]);
+								node.send([null, msg]);
 							} else {
 								msg.element = msg.driver.findElement(By[node.selector](node.target));
 								if ( typeof (callback) !== "undefined") {
@@ -122,7 +124,13 @@ module.exports = function(RED) {
 								shape : "ring",
 								text : "error"
 							});
-							node.send([msg, null]);
+							msg.error = {
+								name : node.name,
+								selector : node.selector,
+								target : node.target,
+								value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
+							};
+							node.send([null, msg]);
 						});
 					} else {
 						if ( typeof (callback) !== "undefined") {
@@ -137,8 +145,13 @@ module.exports = function(RED) {
 					shape : "ring",
 					text : "exception"
 				});
-				msg.error = ex;
-				node.warn (ex);
+				msg.error = {
+					name : node.name,
+					selector : node.selector,
+					target : node.target,
+					value : "error on send-key " + node.name +" with " + node.selector
+				};
+				node.warn (msg.error.value);
 				node.send([null, msg]);
 			}
 		} else {
@@ -196,7 +209,12 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on get-value " + node.name +" with " + node.target
+			};
 			node.warn (ex);
 			node.send([null, msg]);
 		}
@@ -226,7 +244,12 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on get-attribute " + node.name +" with " + node.target
+			};
 			node.warn (ex);
 			node.send([null, msg]);
 		}
@@ -256,7 +279,11 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
+			msg.error = {
+				name : node.name,
+				target : node.target,
+				value : "error on get-text " + node.name +" with " + node.target
+			};
 			node.warn (ex);
 			node.send([null, msg]);
 		}
@@ -280,8 +307,13 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
-			node.warn (ex);
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on set-value for " + node.name +" with " + node.target
+			};
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	};
@@ -302,8 +334,13 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
-			node.warn (ex);
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on click-on for " + node.name +" with " + node.target
+			};
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	}
@@ -345,8 +382,13 @@ module.exports = function(RED) {
 				});
 			}
 		} catch (ex) {
-			msg.error = ex;
-			node.warn (ex);
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on send-keys for " + node.name +" with " + node.target
+			};
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	};
@@ -368,7 +410,13 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on run-script for " + node.name +" with " + node.target
+			};
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	}
@@ -434,7 +482,13 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			msg.error = ex;
+			msg.error = {
+				name : node.name,
+				selector : node.selector,
+				target : node.target,
+				value : "error on take-screen for " + node.name +" with " + node.target
+			};
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	};
@@ -548,7 +602,6 @@ module.exports = function(RED) {
 			console.log(e);
 		}
 		this.on("input", function(msg) {
-			console.log(this.weburl);
 			try {
 				if (msg.topic == "RESET") {
 					msg.refresh = true;
@@ -598,7 +651,11 @@ module.exports = function(RED) {
 							}
 						}).catch(function (error){
 							node.error("Cannot navigate to invalid URL : " + weburl);
-							msg.payload = "Cannot navigate to invalid URL : " + weburl;
+							msg.error = {
+								name : node.name,
+								value : "error on open-url for " + node.name +" to " + weburl
+							};
+							node.warn (msg.error.value);
 							msg.driver = null;
 							node.send([null, msg]);
 						});

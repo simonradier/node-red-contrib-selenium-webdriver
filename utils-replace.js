@@ -15,8 +15,6 @@ module.exports = {
     replaceVar : function (str, msg) {
         if (typeof str != "string")
             return str;
-        console.log("test");
-        console.log(str);
         if (str.match(/^\{\{.*\}\}$/g)) { // if the string is in double brackets like {{ foo }}
             let s = str.substring(2, str.length - 2);
             let v =  s.split(".");
