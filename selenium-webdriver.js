@@ -15,6 +15,9 @@
  **/
 //$("head").append("<link>");var css = $("head").children(":last");css.attr({rel:  "stylesheet",type: "text/css",href: "https://cdn.rawgit.com/kamranahmedse/jquery-toast-plugin/master/dist/jquery.toast.min.css"});$.getScript("https://cdn.rawgit.com/kamranahmedse/jquery-toast-plugin/master/dist/jquery.toast.min.js")
 
+var sraUtil = require("./utils-replace");
+
+
 module.exports = function(RED) {
 	"use strict";
 	var q = require('q');
@@ -57,31 +60,31 @@ module.exports = function(RED) {
 								}
 							});
 						}
-						node.send(msg);
+						node.send([msg, null]);
 					});
 				} else {
 					node.error(RED._("file.errors.writefail", {
 						error : err.toString()
 					}), msg);
-					node.send(msg);
+					node.send([msg, null]);
 				}
 			} else {
-				node.send(msg);
+				node.send([msg, null]);
 			}
 		});
 	}
 
 	function waitUntilElementLocated(node, msg, callback) {
-		node.selector = (node.selector && node.selector != "") ? node.selector : msg.selector;
-		node.target = (node.target && node.target != "") ? node.target : msg.target;
-		node.timeout = (node.timeout && node.timeout != "") ? node.timeout : msg.timeout;
+		node.selector = (node.selector && node.selector != "") ? sraUtil.replaceVar(node.selector, msg) : msg.selector;
+		node.target = (node.target && node.target != "") ? sraUtil.replaceVar(node.target, msg) : msg.target;
+		node.timeout = (node.timeout && node.timeout != "") ? sraUtil.replaceVar(node.timeout, msg) : msg.timeout;
 		node.waitfor = msg.waitfor || node.waitfor;
 		node.status({});
 		if (msg.refresh) {
 			node.status({});
-			node.send(msg);
+			node.send([msg, null]);
 		} else if (msg.error) {
-			node.send(msg);
+			node.send([msg, null]);
 		} else if (node.target && node.target != "") {
 			try {
 				node.status({
@@ -105,7 +108,7 @@ module.exports = function(RED) {
 							});
 						}).then(function() {
 							if (msg.error) {
-								node.send(msg);
+								node.send([msg, null]);
 							} else {
 								msg.element = msg.driver.findElement(By[node.selector](node.target));
 								if ( typeof (callback) !== "undefined") {
@@ -119,7 +122,7 @@ module.exports = function(RED) {
 								shape : "ring",
 								text : "error"
 							});
-							node.send(msg);
+							node.send([msg, null]);
 						});
 					} else {
 						if ( typeof (callback) !== "undefined") {
@@ -134,7 +137,9 @@ module.exports = function(RED) {
 					shape : "ring",
 					text : "exception"
 				});
-				node.send(msg);
+				msg.error = ex;
+				node.warn (ex);
+				node.send([null, msg]);
 			}
 		} else {
 			if ( typeof (callback) !== "undefined") {
@@ -164,7 +169,7 @@ module.exports = function(RED) {
 			shape : "ring",
 			text : type || "unknown"
 		});
-		node.send(msg);
+		node.send([null, msg]);
 	};
 
 	function getValueNode(node, msg) {
@@ -184,14 +189,16 @@ module.exports = function(RED) {
 					if (msg.filename && node.savetofile) {
 						saveToFile(node, msg);
 					} else {
-						node.send(msg);
+						node.send([msg, null]);
 					}
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	};
 
@@ -212,14 +219,16 @@ module.exports = function(RED) {
 					if (msg.filename && node.savetofile) {
 						saveToFile(node, msg);
 					} else {
-						node.send(msg);
+						node.send([msg, null]);
 					}
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	};
 
@@ -240,14 +249,16 @@ module.exports = function(RED) {
 					if (msg.filename && node.savetofile) {
 						saveToFile(node, msg);
 					} else {
-						node.send(msg);
+						node.send([msg, null]);
 					}
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	};
 
@@ -262,14 +273,16 @@ module.exports = function(RED) {
 						text : "done"
 					});
 					delete msg.error;
-					node.send(msg);
+					node.send([msg, null]);
 				}
 
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	};
 
@@ -283,19 +296,21 @@ module.exports = function(RED) {
 						text : "done"
 					});
 					delete msg.error;
-					node.send(msg);
+					node.send([msg, null]);
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	}
 
 	function sendKeysNode(node, msg) {
 		try {
-			var value = (node.value && node.value != "") ? node.value : msg.value;
+			var value = (node.value && node.value != "") ? sraUtil.replaceVar(node.value, msg) : msg.value;
 			if (node.clearval) {
 				msg.element.clear().then(function() {
 					msg.element.sendKeys(value).then(function() {
@@ -306,7 +321,7 @@ module.exports = function(RED) {
 								text : "done"
 							});
 							delete msg.error;
-							node.send(msg);
+							node.send([msg, null]);
 						}
 					}).catch(function(errorback) {
 						sendErrorMsg(node, msg, errorback.message, "error");
@@ -323,14 +338,16 @@ module.exports = function(RED) {
 							text : "done"
 						});
 						delete msg.error;
-						node.send(msg);
+						node.send([msg, null]);
 					}
 				}).catch(function(errorback) {
 					sendErrorMsg(node, msg, errorback.message, "error");
 				});
 			}
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.warn (ex);
+			node.send([null, msg]);
 		}
 	};
 
@@ -345,13 +362,14 @@ module.exports = function(RED) {
 					});
 					delete msg.error;
 					msg.payload = results;
-					node.send(msg);
+					node.send([msg, null]);
 				}
 			}).catch(function(errorback) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.send([null, msg]);
 		}
 	}
 
@@ -386,7 +404,7 @@ module.exports = function(RED) {
 								text : "done"
 							});
 							delete msg.error;
-							node.send(msg);
+							node.send([msg, null]);
 						} else {
 							var base64Data = base64PNG.replace(/^data:image\/png;base64,/, "");
 							fs.writeFile(node.filename, base64Data, 'base64', function(err) {
@@ -402,7 +420,7 @@ module.exports = function(RED) {
 										text : "done"
 									});
 									delete msg.error;
-									node.send(msg);
+									node.send([msg, null]);
 								}
 							});
 						}
@@ -416,7 +434,8 @@ module.exports = function(RED) {
 				sendErrorMsg(node, msg, errorback.message, "error");
 			});
 		} catch (ex) {
-			node.send(msg);
+			msg.error = ex;
+			node.send([null, msg]);
 		}
 	};
 
@@ -494,81 +513,27 @@ module.exports = function(RED) {
 	RED.nodes.registerType("selenium-server", SeleniumServerSetup);
 
 	function SeleniumOpenURLNode(n) {
-		RED.nodes.createNode(this, n);
-		this.name = n.name;
-		this.server = n.server;
-		this.browser = n.browser;
-		this.weburl = n.weburl;
-		this.width = n.width;
-		this.height = n.height;
-		this.webtitle = n.webtitle;
-		this.timeout = n.timeout;
-		this.maximized = n.maximized;
-		this.serverObj = RED.nodes.getNode(this.server);
-		var node = this;
-		if (node.serverObj) {
-			node.serverObj.register();
-			node.serverObj.connect(node.browser).then(function(webdriver) {
-				node.status({
-					fill : "green",
-					shape : "ring",
-					text : "connected"
-				});
-			}, function(error) {
-				node.status({
-					fill : "red",
-					shape : "ring",
-					text : "disconnected"
-				});
-			});
-		} else {
-			node.error("!configuration");
-		}
-		this.on("input", function(msg) {
-			if (msg.topic == "RESET") {
-				msg.refresh = true;
-				node.status({});
-				node.send(msg);
-			} else {
+		try {
+			RED.nodes.createNode(this, n);
+			this.name = n.name;
+			this.server = n.server;
+			this.browser = n.browser;
+			this.weburl = n.weburl;
+			this.width = n.width;
+			this.height = n.height;
+			this.webtitle = n.webtitle;
+			this.timeout = n.timeout;
+			this.maximized = n.maximized;
+			this.serverObj = RED.nodes.getNode(this.server);
+			var node = this;
+			if (node.serverObj) {
+				node.serverObj.register();
 				node.serverObj.connect(node.browser).then(function(webdriver) {
-					function setWindowSize(driver, title) {
-						if (node.maximized) {
-							driver.manage().window().maximize().then(function() {
-								msg.driver = driver;
-								msg.payload = title;
-								node.send(msg);
-							});
-						} else {
-							driver.manage().window().setSize(parseInt(node.width), parseInt(node.height)).then(function() {
-								msg.driver = driver;
-								msg.payload = title;
-								node.send(msg);
-							});
-						}
-						node.status({
-							fill : "green",
-							shape : "ring",
-							text : "connected"
-						});
-					}
-
-					var driver = webdriver.build();
-					driver.get(node.weburl);
-					if (node.webtitle) {
-						driver.wait(until.titleIs(node.webtitle), parseInt(node.timeout)).catch(function(errorback) {
-							node.status({
-								fill : "yellow",
-								shape : "ring",
-								text : "unexpected"
-							});
-						}).then(function() {
-							driver.getTitle().then(function(title) {
-								setWindowSize(driver, title);
-							});
-						});
-					} else {
-						setWindowSize(driver);
-					}
+					node.status({
+						fill : "green",
+						shape : "ring",
+						text : "connected"
+					});
 				}, function(error) {
 					node.status({
 						fill : "red",
@@ -576,7 +541,83 @@ module.exports = function(RED) {
 						text : "disconnected"
 					});
 				});
+			} else {
+				node.error("!configuration");
 			}
+		} catch (e) {
+			console.log(e);
+		}
+		this.on("input", function(msg) {
+			console.log(this.weburl);
+			try {
+				if (msg.topic == "RESET") {
+					msg.refresh = true;
+					node.status({});
+					node.send([msg, null]);
+				} else {
+					node.serverObj.connect(node.browser).then(function(webdriver) {
+						function setWindowSize(driver, title) {
+							if (node.maximized) {
+								driver.manage().window().maximize().then(function() {
+									msg.driver = driver;
+									msg.payload = title;
+									node.send([msg, null]);
+								});
+							} else {
+								driver.manage().window().setSize(parseInt(node.width), parseInt(node.height)).then(function() {
+									msg.driver = driver;
+									msg.payload = title;
+									node.send([msg, null]);
+								});
+							}
+							node.status({
+								fill : "green",
+								shape : "ring",
+								text : "connected"
+							});
+						}
+
+						var driver = webdriver.build();
+						let weburl = sraUtil.replaceVar(node.weburl, msg)
+						driver.get(weburl).then (function()
+						{					
+							if (node.webtitle) {
+								driver.wait(until.titleIs(node.webtitle), parseInt(node.timeout)).catch(function(errorback) {
+									node.status({
+										fill : "yellow",
+										shape : "ring",
+										text : "unexpected"
+									});
+								}).then(function() {
+									driver.getTitle().then(function(title) {
+										setWindowSize(driver, title);
+									});
+								});
+							} else {
+								setWindowSize(driver);
+							}
+						}).catch(function (error){
+							node.error("Cannot navigate to invalid URL : " + weburl);
+							msg.payload = "Cannot navigate to invalid URL : " + weburl;
+							msg.driver = null;
+							node.send([null, msg]);
+						});
+					}, function(error) {
+						node.status({
+							fill : "red",
+							shape : "ring",
+							text : "disconnected"
+						});
+					}).catch(function (error) {
+						console.log(error);
+						node.send([null, msg]);
+					});
+				}
+			} catch (e) {
+				node.error(e);
+				msg.payload = e;
+				node.send([null, msg]);
+			}	
 		});
 		this.on('close', function() {
 			if (node.serverObj) {
@@ -589,27 +630,33 @@ module.exports = function(RED) {
 	RED.nodes.registerType("open-web", SeleniumOpenURLNode);
 
 	function SeleniumCloseBrowserNode(n) {
-		RED.nodes.createNode(this, n);
-		this.name = n.name;
-		this.waitfor = n.waitfor || 0;
-		var node = this;
-		this.on("input", function(msg) {
-			if (msg.refresh) {
-				msg.refresh = false;
-				node.status({});
-				node.send(msg);
-			} else {
-				setTimeout(function() {
-					msg.driver.quit();
-					node.send(msg);
-					node.status({
-						fill : "green",
-						shape : "ring",
-						text : "closed"
-					});
-				}, node.waitfor);
-			}
-		});
+		try {
+			RED.nodes.createNode(this, n);
+			this.name = n.name;
+			this.waitfor = n.waitfor || 0;
+			var node = this;
+			this.on("input", function(msg) {
+				if (msg.refresh) {
+					msg.refresh = false;
+					node.status({});
+					node.send([msg, null]);
+				} else {
+					setTimeout(function() {
+						if (msg.driver)
+							msg.driver.quit();
+						node.send([msg, null]);
+						node.status({
+							fill : "green",
+							shape : "ring",
+							text : "closed"
+						});
+					}, node.waitfor);
+				}
+			});
+		} catch (e) {
+			console.log(e);
+			node.send([null, msg]);
+		}
 	}
 
 
@@ -625,7 +672,7 @@ module.exports = function(RED) {
 		var node = this;
 		this.on("input", function(msg) {
 			waitUntilElementLocated(node, msg, function(element) {
-				node.send(msg);
+				node.send([msg, null]);
 			});
 		});
 	}
@@ -717,7 +764,7 @@ module.exports = function(RED) {
 		this.on("input", function(msg) {
 			if (msg.refresh) {
 				node.status({});
-				node.send(msg);
+				node.send([msg, null]);
 			} else {
 				saveToFile(node, msg);
 			}
@@ -834,11 +881,11 @@ module.exports = function(RED) {
 		this.on("input", function(msg) {
 			if (msg.refresh) {
 				node.status({});
-				node.send(msg);
+				node.send([msg, null]);
 			} else if (msg.driver) {
 				setTimeout(function() {
 					msg.driver.navigate().to(node.url).then(function() {
-						node.send(msg);
+						node.send([msg, null]);
 					});
 				}, node.waitfor);
 			}
@@ -856,11 +903,11 @@ module.exports = function(RED) {
 		this.on("input", function(msg) {
 			if (msg.refresh) {
 				node.status({});
-				node.send(msg);
+				node.send([msg, null]);
 			} else if (msg.driver) {
 				setTimeout(function() {
 					msg.driver.navigate().back().then(function() {
-						node.send(msg);
+						node.send([msg, null]);
 					});
 				}, node.waitfor);
 			}
@@ -878,11 +925,11 @@ module.exports = function(RED) {
 		this.on("input", function(msg) {
 			if (msg.refresh) {
 				node.status({});
-				node.send(msg);
+				node.send([msg, null]);
 			} else if (msg.driver) {
 				setTimeout(function() {
 					msg.driver.navigate().forward().then(function() {
-						node.send(msg);
+						node.send([msg, null]);
 					});
 				}, node.waitfor);
 			}
@@ -900,11 +947,11 @@ module.exports = function(RED) {
 		this.on("input", function(msg) {
 			if (msg.refresh) {
 				node.status({});
-				node.send(msg);
+				node.send([msg, null]);
 			} else if (msg.driver) {
 				setTimeout(function() {
 					msg.driver.navigate().refresh().then(function() {
-						node.send(msg);
+						node.send([msg, null]);
 					});
 				}, node.waitfor);
 			}
