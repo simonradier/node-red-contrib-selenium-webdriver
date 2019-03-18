@@ -125,13 +125,19 @@ module.exports = function(RED) {
 									name : node.name,
 									selector : node.selector,
 									target : node.target,
-									value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
+									value : "catch timeout after " + node.timeout + " milliseconds for selector type toto" + node.selector +  " for  " + node.target
 								};
 								reject(msg.error);
 							});
 						} else {
 							node.status({});
-							resolve(msg.element);
+							msg.error = {
+								name : node.name,
+								selector : node.selector,
+								target : node.target,
+								value : "Open URL must be call before any other action. For node : " + node.name
+							};
+							reject(msg.error);
 						}
 					}, node.waitfor);
 				} catch (ex) {
@@ -208,7 +214,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on get-value " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
@@ -243,7 +249,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on get-attribute " + node.name +" with " + node.target
 			};
-			node.warn (ex);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
@@ -277,7 +283,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on get-text " + node.name +" with " + node.target
 			};
-			node.warn (ex);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
@@ -306,7 +312,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on set-value for " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
@@ -333,7 +339,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on click-on for " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	}
@@ -381,7 +387,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on send-keys for " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
@@ -409,7 +415,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on run-script for " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	}
@@ -481,7 +487,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on take-screen for " + node.name +" with " + node.target
 			};
-			node.warn (msg.error.value);
+			node.warn (msg.error);
 			node.send([null, msg]);
 		}
 	};
