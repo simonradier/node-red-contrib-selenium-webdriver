@@ -74,88 +74,81 @@ module.exports = function(RED) {
 		});
 	}
 
-	function waitUntilElementLocated(node, msg, callback) {
-		node.selector = (node.selector && node.selector != "") ? sraUtil.replaceVar(node.selector, msg) : msg.selector;
-		node.target = (node.target && node.target != "") ? sraUtil.replaceVar(node.target, msg) : msg.target;
-		node.timeout = (node.timeout && node.timeout != "") ? sraUtil.replaceVar(node.timeout, msg) : msg.timeout;
-		node.waitfor = msg.waitfor || node.waitfor;
-		node.status({});
-		if (msg.refresh) {
+	function waitUntilElementLocated(node, msg) {
+		return new Promise((resolve, reject) => {
+			node.selector = (node.selector && node.selector != "") ? sraUtil.replaceVar(node.selector, msg) : msg.selector;
+			node.target = (node.target && node.target != "") ? sraUtil.replaceVar(node.target, msg) : msg.target;
+			node.timeout = (node.timeout && node.timeout != "") ? sraUtil.replaceVar(node.timeout, msg) : msg.timeout;
+			node.waitfor = msg.waitfor || node.waitfor;
 			node.status({});
-			node.send([msg, null]);
-		} else if (msg.error) {
-			node.send([msg, null]);
-		} else if (node.target && node.target != "") {
-			try {
-				node.status({
-					fill : "blue",
-					shape : "dot",
-					text : "locating"
-				});
-				setTimeout(function() {
-					if (msg.driver) {
-						msg.driver.wait(until.elementLocated(By[node.selector](node.target)), parseInt(node.timeout)).catch(function(errorback) {
-							msg.error = {
-								name : node.name,
-								selector : node.selector,
-								target : node.target,
-								value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
-							};
-							node.status({
-								fill : "red",
-								shape : "ring",
-								text : "error"
-							});
-							node.warn(msg.error);
-							node.send([null, msg]);
-						}).then(function() {
-							if (msg.error) {
-								node.send([null, msg]);
-							} else {
-								msg.element = msg.driver.findElement(By[node.selector](node.target));
-								if ( typeof (callback) !== "undefined") {
-									node.status({});
-									callback(msg.element);
+			if (msg.refresh) {
+				node.status({});
+				resolve(msg.element);
+			} else if (msg.error) {
+				reject(msg.error);
+			} else if (node.target && node.target != "") {
+				try {
+					node.status({
+						fill : "blue",
+						shape : "dot",
+						text : "locating"
+					});
+					setTimeout(function() {
+						if (msg.driver) {
+							msg.driver.wait(until.elementLocated(By[node.selector](node.target)), parseInt(node.timeout)).catch(function(errorback) {
+								msg.error = {
+									name : node.name,
+									selector : node.selector,
+									target : node.target,
+									value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
+								};
+								node.status({
+									fill : "red",
+									shape : "ring",
+									text : "error"
+								});
+								reject(msg.error);
+							}).then(function() {
+								if (msg.error) {
+									reject(msg.error);
+								} else {
+									msg.element = msg.driver.findElement(By[node.selector](node.target));
+									resolve(msg.element);
 								}
-							}
-						}, function(err) {
-							node.status({
-								fill : "red",
-								shape : "ring",
-								text : "error"
+							}, function(err) {
+								node.status({
+									fill : "red",
+									shape : "ring",
+									text : "error"
+								});
+								msg.error = {
+									name : node.name,
+									selector : node.selector,
+									target : node.target,
+									value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
+								};
+								reject(msg.error);
 							});
-							msg.error = {
-								name : node.name,
-								selector : node.selector,
-								target : node.target,
-								value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
-							};
-							node.send([null, msg]);
-						});
-					} else {
-						if ( typeof (callback) !== "undefined") {
+						} else {
 							node.status({});
-							callback(msg.element);
+							resolve(msg.element);
 						}
-					}
-				}, node.waitfor);
-			} catch (ex) {
-				node.status({
-					fill : "red",
-					shape : "ring",
-					text : "exception"
-				});
-				msg.error = {
-					name : node.name,
-					selector : node.selector,
-					target : node.target,
-					value : "error on send-key " + node.name +" with " + node.selector
-				};
-				node.warn (msg.error.value);
-				node.send([null, msg]);
-			}
-		} else {
-			if ( typeof (callback) !== "undefined") {
+					}, node.waitfor);
+				} catch (ex) {
+					node.status({
+						fill : "red",
+						shape : "ring",
+						text : "exception"
+					});
+					msg.error = {
+						name : node.name,
+						selector : node.selector,
+						target : node.target,
+						value : "error on send-key " + node.name +" with " + node.selector
+					};
+					reject(msg.error);
+				}
+			} else {
 				node.status({
 					fill : "blue",
 					shape : "dot",
@@ -163,10 +156,10 @@ module.exports = function(RED) {
 				});
 				setTimeout(function() {
 					node.status({});
-					callback(msg.element);
+					resolve(msg.element);
 				}, node.waitfor);
 			}
-		}
+		});
 	}
 
 	function sendErrorMsg(node, msg, text, type) {
@@ -215,7 +208,7 @@ module.exports = function(RED) {
 				target : node.target,
 				value : "error on get-value " + node.name +" with " + node.target
 			};
-			node.warn (ex);
+			node.warn (msg.error.value);
 			node.send([null, msg]);
 		}
 	};
@@ -728,8 +721,11 @@ module.exports = function(RED) {
 		this.waitfor = n.waitfor;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				node.send([msg, null]);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -748,8 +744,11 @@ module.exports = function(RED) {
 		this.clearval = n.clearval;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				sendKeysNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -767,7 +766,7 @@ module.exports = function(RED) {
 		this.clickon = n.clickon;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				if (node.clickon) {
 					if ( typeof (msg.payload) !== "undefined") {
 						node.___msgs = msg;
@@ -786,6 +785,9 @@ module.exports = function(RED) {
 				} else {
 					clickOnNode(node, msg);
 				}
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -803,8 +805,11 @@ module.exports = function(RED) {
 		this.waitfor = n.waitfor;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				setValueNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -843,8 +848,11 @@ module.exports = function(RED) {
 		var node = this;
 
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				getValueNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -865,8 +873,11 @@ module.exports = function(RED) {
 		var node = this;
 
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				getAttributeNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -885,8 +896,11 @@ module.exports = function(RED) {
 		this.savetofile = n.savetofile;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				getTextNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -901,8 +915,11 @@ module.exports = function(RED) {
 		this.waitfor = n.waitfor;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				runScriptNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
@@ -920,8 +937,11 @@ module.exports = function(RED) {
 		this.filename = n.filename;
 		var node = this;
 		this.on("input", function(msg) {
-			waitUntilElementLocated(node, msg, function(element) {
+			waitUntilElementLocated(node, msg).then(function (element) {
 				takeScreenShotNode(node, msg);
+			}).catch(function (error) {
+				node.warn(error);
+				node.send([null, msg]);
 			});
 		});
 	}
