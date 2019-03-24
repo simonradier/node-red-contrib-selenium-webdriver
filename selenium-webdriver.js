@@ -93,50 +93,34 @@ module.exports = function(RED) {
 						shape : "dot",
 						text : "locating"
 					});
-					setTimeout(function() {
-						if (msg.driver) {
-							msg.driver.wait(until.elementLocated(By[node.selector](node.target)), parseInt(node.timeout)).catch(function(errorback) {
+					setTimeout(async function() {
+						try {
+							if (msg.driver) {
+								await msg.driver.wait(until.elementLocated(By[node.selector](node.target)), parseInt(node.timeout));
+								msg.element = await msg.driver.findElement(By[node.selector](node.target));
+								resolve(msg.element);
+							} else {
+								node.status({});
 								msg.error = {
 									name : node.name,
 									selector : node.selector,
 									target : node.target,
-									value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
-								};
-								node.status({
-									fill : "red",
-									shape : "ring",
-									text : "error"
-								});
-								reject(msg.error);
-							}).then(function() {
-								if (msg.error) {
-									reject(msg.error);
-								} else {
-									msg.element = msg.driver.findElement(By[node.selector](node.target));
-									resolve(msg.element);
-								}
-							}, function(err) {
-								node.status({
-									fill : "red",
-									shape : "ring",
-									text : "error"
-								});
-								msg.error = {
-									name : node.name,
-									selector : node.selector,
-									target : node.target,
-									value : "catch timeout after " + node.timeout + " milliseconds for selector type toto" + node.selector +  " for  " + node.target
+									value : "Open URL must be call before any other action. For node : " + node.name
 								};
 								reject(msg.error);
-							});
-						} else {
-							node.status({});
+							}
+						} catch(e) {
 							msg.error = {
 								name : node.name,
 								selector : node.selector,
 								target : node.target,
-								value : "Open URL must be call before any other action. For node : " + node.name
+								value : "catch timeout after " + node.timeout + " milliseconds for selector type " + node.selector +  " for  " + node.target
 							};
+							node.status({
+								fill : "red",
+								shape : "ring",
+								text : "error"
+							});
 							reject(msg.error);
 						}
 					}, node.waitfor);
