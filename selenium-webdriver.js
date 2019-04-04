@@ -76,6 +76,7 @@ module.exports = function(RED) {
 
 	function waitUntilElementLocated(node, msg) {
 		return new Promise((resolve, reject) => {
+			msg.error = null,
 			node.selector = (node.selector && node.selector != "") ? sraUtil.replaceVar(node.selector, msg) : msg.selector;
 			node.target = (node.target && node.target != "") ? sraUtil.replaceVar(node.target, msg) : msg.target;
 			node.timeout = (node.timeout && node.timeout != "") ? sraUtil.replaceVar(node.timeout, msg) : msg.timeout;
@@ -84,8 +85,6 @@ module.exports = function(RED) {
 			if (msg.refresh) {
 				node.status({});
 				resolve(msg.element);
-			} else if (msg.error) {
-				reject(msg.error);
 			} else if (node.target && node.target != "") {
 				try {
 					node.status({
