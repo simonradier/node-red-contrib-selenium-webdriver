@@ -41,6 +41,10 @@
 		<input type="checkbox" id="node-input-maximized" checked style="display: inline-block; width: auto; vertical-align: top;">
 		<label for="node-input-maximized" style="width: auto;">Maximize window</label>
 	</div>
+	<div class="form-row">
+		<input type="checkbox" id="node-input-headless" checked style="display: inline-block; width: auto; vertical-align: top;">
+		<label for="node-input-headless" style="width: auto;">Launch Headless</label>
+	</div>
 </script>
 
 <script type="text/x-red" data-help-name="open-web">
@@ -93,6 +97,10 @@
 			},
 			maximized : {
 				value : true,
+				required : true
+			},
+			headless : {
+				value : false,
 				required : true
 			},
 			server : {

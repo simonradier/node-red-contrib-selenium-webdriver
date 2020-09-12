@@ -29,6 +29,8 @@ module.exports = function(RED) {
 		By = webdriver.By,
 		until = webdriver.until;
 	var isUtf8 = require('is-utf8');
+	var chrome = require("selenium-webdriver/chrome");
+	var firefox = require("selenium-webdriver/firefox");
 	var ___msgs = {};
 
 	function saveToFile(node, msg) {
@@ -97,6 +99,11 @@ module.exports = function(RED) {
 							if (msg.driver) {
 								await msg.driver.wait(until.elementLocated(By[node.selector](node.target)), parseInt(node.timeout));
 								msg.element = await msg.driver.findElement(By[node.selector](node.target));
+								node.status({
+									fill : "green",
+									shape : "dot",
+									text : "done"
+								});
 								resolve(msg.element);
 							} else {
 								node.status({});
@@ -278,7 +285,7 @@ module.exports = function(RED) {
 				if (!msg.error) {
 					node.status({
 						fill : "green",
-						shape : "ring",
+						shape : "dot",
 						text : "done"
 					});
 					delete msg.error;
@@ -306,7 +313,7 @@ module.exports = function(RED) {
 				if (!msg.error) {
 					node.status({
 						fill : "green",
-						shape : "ring",
+						shape : "dot",
 						text : "done"
 					});
 					delete msg.error;
@@ -336,7 +343,7 @@ module.exports = function(RED) {
 						if (!msg.error) {
 							node.status({
 								fill : "green",
-								shape : "ring",
+								shape : "dot",
 								text : "done"
 							});
 							delete msg.error;
@@ -353,7 +360,7 @@ module.exports = function(RED) {
 					if (!msg.error) {
 						node.status({
 							fill : "green",
-							shape : "ring",
+							shape : "dot",
 							text : "done"
 						});
 						delete msg.error;
@@ -381,7 +388,7 @@ module.exports = function(RED) {
 				if (!msg.error) {
 					node.status({
 						fill : "green",
-						shape : "ring",
+						shape : "dot",
 						text : "done"
 					});
 					delete msg.error;
@@ -430,7 +437,7 @@ module.exports = function(RED) {
 							msg.payload = base64PNG;
 							node.status({
 								fill : "green",
-								shape : "ring",
+								shape : "dot",
 								text : "done"
 							});
 							delete msg.error;
@@ -446,7 +453,7 @@ module.exports = function(RED) {
 								if (!msg.error) {
 									node.status({
 										fill : "green",
-										shape : "ring",
+										shape : "dot",
 										text : "done"
 									});
 									delete msg.error;
@@ -506,7 +513,9 @@ module.exports = function(RED) {
 				return isReachable(url.host)
 					.then(reachable => {
 						if (reachable) {
-							node.driver = new webdriver.Builder().forBrowser(browser).usingServer(node.remoteurl);
+							node.driver = new webdriver.Builder()
+								.forBrowser(browser)
+								.usingServer(node.remoteurl);
 							node.log(RED._("connected", {
 								server: ( browser ? browser + "@" : "") + node.remoteurl
 							}));
@@ -560,6 +569,7 @@ module.exports = function(RED) {
 			this.webtitle = n.webtitle;
 			this.timeout = n.timeout;
 			this.maximized = n.maximized;
+			this.headless = n.headless;
 			this.serverObj = RED.nodes.getNode(this.server);
 			var node = this;
 			if (node.serverObj) {
@@ -611,9 +621,25 @@ module.exports = function(RED) {
 								text : "connected"
 							});
 						}
-
+						if (node.headless) {
+							let width = Number.parseInt(node.width);
+							let height = Number.parseInt(node.height);
+							switch (node.browser) {
+								case 'firefox' : {
+									webdriver = webdriver.setFirefoxOptions(
+										new firefox.Options().headless().windowSize({width, height}));
+									break;
+								}
+								case 'chrome' : {
+									webdriver = webdriver.setChromeOptions(
+										new chrome.Options().headless().windowSize({width, height}));
+									break;
+								}
+							}
+						}
 						var driver = webdriver.build();
 						let weburl = sraUtil.replaceVar(node.weburl, msg)
+						try {
 						driver.get(weburl).then (function()
 						{					
 							if (node.webtitle) {
@@ -625,11 +651,13 @@ module.exports = function(RED) {
 									});
 								}).then(function() {
 									driver.getTitle().then(function(title) {
-										setWindowSize(driver, title);
+										if (!node.headless)
+											setWindowSize(driver, title);
 									});
 								});
 							} else {
-								setWindowSize(driver);
+								if (!node.headless)
+									setWindowSize(driver);
 							}
 						}).catch(function (error){
 							node.error("Cannot navigate to invalid URL : " + weburl);
@@ -641,6 +669,9 @@ module.exports = function(RED) {
 							msg.driver = null;
 							node.send([null, msg]);
 						});
+						} catch (e) {
+							console.log(e);
+						}
 					}, function(error) {
 						node.status({
 							fill : "red",
