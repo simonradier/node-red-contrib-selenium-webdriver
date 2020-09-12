@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-//$("head").append("<link>");var css = $("head").children(":last");css.attr({rel:  "stylesheet",type: "text/css",href: "https://cdn.rawgit.com/kamranahmedse/jquery-toast-plugin/master/dist/jquery.toast.min.css"});$.getScript("https://cdn.rawgit.com/kamranahmedse/jquery-toast-plugin/master/dist/jquery.toast.min.js")
 
 var sraUtil = require("./utils-replace");
 
@@ -617,7 +616,7 @@ module.exports = function(RED) {
 							}
 							node.status({
 								fill : "green",
-								shape : "ring",
+								shape : "dot",
 								text : "connected"
 							});
 						}
@@ -658,6 +657,11 @@ module.exports = function(RED) {
 							} else {
 								if (!node.headless)
 									setWindowSize(driver);
+								else {
+									msg.driver = driver;
+									msg.payload = title;
+									node.send([msg, null]);
+								}
 							}
 						}).catch(function (error){
 							node.error("Cannot navigate to invalid URL : " + weburl);
